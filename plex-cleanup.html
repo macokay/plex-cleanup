@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlexCleanup</title>
+<style>
+:root {
+  --bg:#0e0e10; --bg2:#18181c; --bg3:#222228;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+  --text:#f0f0f0; --text2:#9999aa; --text3:#5a5a6a;
+  --accent:#e5a00d; --accent2:#c47d0b;
+  --danger:#e25454; --danger2:#c03030;
+  --success:#4caf80; --info:#5b8dee;
+  --radius:8px; --radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+
+/* ── HEADER ── */
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;gap:1rem;height:56px;}
+.logo{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;}
+.logo span{color:var(--text2);font-weight:400;}
+.header-stats{display:flex;gap:1.5rem;margin-left:auto;}
+.hstat{text-align:right;}
+.hstat-val{font-size:15px;font-weight:700;color:var(--text);}
+.hstat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.hdr-btn{background:none;border:1px solid var(--border2);border-radius:var(--radius);padding:6px 10px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:11px;transition:all .15s;}
+.hdr-btn:hover{background:var(--bg3);color:var(--text);}
+.hdr-btn svg{width:14px;height:14px;}
+.conn-status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;}
+.conn-dot.green{background:var(--success);}
+.conn-dot.yellow{background:var(--accent);animation:pulse 1.5s infinite;}
+.conn-dot.red{background:var(--danger);}
+
+/* ── TABS ── */
+.nav-tabs{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;padding:0 2rem;align-items:center;}
+.nav-tab{padding:0 1.25rem;height:40px;display:flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.nav-tab:hover{color:var(--text2);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── LAYOUT ── */
+.layout{display:flex;height:calc(100vh - 96px);}
+.sidebar{width:260px;min-width:260px;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0;}
+.panel{display:none;flex:1;flex-direction:column;}
+.panel.active{display:flex;}
+
+/* ── SIDEBAR ── */
+.sb-section{border-bottom:1px solid var(--border);padding:1.25rem 1.25rem 1rem;}
+.sb-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:.75rem;}
+.filter-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:all .15s;color:var(--text2);font-size:12px;}
+.filter-chip:hover{background:var(--bg3);color:var(--text);}
+.filter-chip.active{background:var(--bg3);border-color:var(--accent);color:var(--accent);}
+.filter-chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.filter-chip .count{margin-left:auto;background:var(--bg);padding:2px 7px;border-radius:10px;font-size:11px;color:var(--text3);}
+select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-family:inherit;font-size:12px;outline:none;cursor:pointer;}
+
+/* ── BUTTONS ── */
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;background:var(--accent);color:#000;border:none;border-radius:var(--radius);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:background .15s,transform .1s;}
+.btn:hover{background:var(--accent2);}
+.btn:active{transform:scale(.98);}
+.btn-sec{background:transparent;color:var(--text2);border:1px solid var(--border2);}
+.btn-sec:hover{background:var(--bg3);color:var(--text);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{background:var(--danger2);}
+.btn-sm{padding:5px 10px;font-size:11px;width:auto;}
+
+/* ── TOOLBAR ── */
+.toolbar{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;background:var(--bg2);flex-shrink:0;}
+.search-wrap{flex:1;position:relative;}
+.search-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px 8px 34px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);display:flex;align-items:center;}
+.type-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.type-btn{padding:7px 14px;font-family:inherit;font-size:12px;font-weight:600;background:transparent;border:none;color:var(--text2);cursor:pointer;transition:all .15s;}
+.type-btn.active{background:var(--accent);color:#000;}
+.delete-marked-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:600;background:rgba(226,84,84,.12);border:1px solid rgba(226,84,84,.25);border-radius:var(--radius);color:#e27070;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.delete-marked-btn:hover{background:rgba(226,84,84,.2);color:#ff9090;}
+.delete-marked-btn svg{width:13px;height:13px;}
+
+/* ── TABLE ── */
+.table-wrap{flex:1;overflow:auto;}
+table{width:100%;border-collapse:collapse;}
+thead{position:sticky;top:0;background:var(--bg2);z-index:2;}
+th{padding:10px 1.25rem;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{color:var(--text2);}
+td{padding:8px 1.25rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:hover td{background:rgba(255,255,255,.02);}
+tr.marked td{background:rgba(226,84,84,.05);}
+tr.deleting td{opacity:.4;transition:opacity .4s;}
+tr.deleted{display:none;}
+.thumb-ph{width:36px;height:52px;border-radius:4px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text3);flex-shrink:0;overflow:hidden;}
+.thumb-ph svg{width:16px;height:16px;}
+.thumb-ph img{width:100%;height:100%;object-fit:cover;border-radius:4px;display:block;}
+.title-cell{display:flex;align-items:center;gap:10px;}
+.title-name{font-weight:600;font-size:13px;color:var(--text);margin-bottom:2px;}
+.title-meta{font-size:11px;color:var(--text3);}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;text-transform:uppercase;margin-right:3px;}
+.tag-never{background:rgba(226,84,84,.15);color:#e27070;border:1px solid rgba(226,84,84,.25);}
+.tag-partial{background:rgba(229,160,13,.15);color:#e5a00d;border:1px solid rgba(229,160,13,.25);}
+.tag-stale{background:rgba(91,141,238,.15);color:#7ba8f0;border:1px solid rgba(91,141,238,.25);}
+.tag-forgotten{background:rgba(180,100,220,.15);color:#c07ae0;border:1px solid rgba(180,100,220,.25);}
+.tag-big{background:rgba(76,175,128,.15);color:#4caf80;border:1px solid rgba(76,175,128,.25);}
+.tag-movie{background:rgba(255,255,255,.05);color:var(--text3);border:1px solid var(--border);}
+.tag-show{background:rgba(91,141,238,.1);color:#7ba8f0;border:1px solid rgba(91,141,238,.2);}
+.size-wrap{display:flex;align-items:center;gap:8px;}
+.size-bar{height:4px;background:var(--bg3);border-radius:2px;width:56px;overflow:hidden;}
+.size-fill{height:100%;background:var(--accent);border-radius:2px;}
+.size-txt{font-size:12px;color:var(--text2);white-space:nowrap;}
+.checkbox-cell{width:36px;}
+input[type=checkbox]{width:15px;height:15px;accent-color:var(--danger);cursor:pointer;}
+.row-del-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;display:flex;align-items:center;opacity:0;transition:opacity .15s;}
+tr:hover .row-del-btn{opacity:1;}
+.row-del-btn:hover{color:var(--danger);}
+.row-del-btn svg{width:13px;height:13px;}
+.del-status{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;}
+.del-status.ok{color:var(--success);}
+.del-status.err{color:var(--danger);}
+
+/* ── STATES ── */
+.state-box{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:3rem;text-align:center;}
+.state-icon{opacity:.3;line-height:1;}
+.state-icon svg{display:block;}
+.state-title{font-size:16px;font-weight:600;color:var(--text);}
+.state-sub{font-size:13px;color:var(--text3);max-width:380px;line-height:1.7;}
+.pulse{animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:.8}}
+.status-bar{padding:.5rem 1.5rem;font-size:11px;color:var(--text3);border-top:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;gap:.75rem;flex-shrink:0;}
+
+/* ── CHARTS ── */
+.charts-panel{padding:2rem;overflow-y:auto;flex:1;}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;}
+.chart-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:1.25rem;}
+.donut-wrap{display:flex;align-items:center;gap:1.5rem;}
+.legend{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.legend-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.legend-val{color:var(--text);font-weight:600;font-size:12px;flex-shrink:0;}
+
+/* ── MODALS (shared base) ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);width:520px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.modal-header{padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-header h2{font-size:15px;font-weight:700;color:var(--text);}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:2px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:1.5rem;overflow-y:auto;flex:1;}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:.75rem;flex-shrink:0;}
+.modal-footer .btn{flex:1;}
+
+/* ── SETTINGS MODAL SPECIFIC ── */
+.settings-field{margin-bottom:1rem;}
+.settings-field label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;}
+.settings-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+.input-wrap{position:relative;display:block;}
+.input-wrap input,.settings-field input[type=text],.settings-field input[type=password]{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:border-color .15s;}
+.input-wrap input{padding-right:30px;}
+.input-wrap input:focus,.settings-field input:focus{border-color:var(--accent);}
+.eye-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;display:flex;align-items:center;}
+.eye-btn:hover{color:var(--text2);}
+.settings-sep{height:1px;background:var(--border);margin:1.25rem 0;}
+.settings-section-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:.75rem;}
+.deletion-choice{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem;}
+.del-option{border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:all .15s;}
+.del-option:hover{border-color:var(--text3);}
+.del-option.selected{border-color:var(--accent);background:rgba(229,160,13,.07);}
+.del-option-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.del-option-sub{font-size:11px;color:var(--text3);line-height:1.5;}
+.arr-section{display:none;}
+.arr-section.visible{display:block;}
+.arr-toggle{display:flex;align-items:center;gap:10px;margin-bottom:.75rem;cursor:pointer;}
+.arr-toggle input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);}
+.arr-toggle-label{font-size:12px;color:var(--text2);}
+.arr-fields{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-left:25px;margin-bottom:.75rem;}
+.arr-fields input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:border-color .15s;}
+.arr-fields input:focus{border-color:var(--accent);}
+.arr-fields label{font-size:10px;color:var(--text3);display:block;margin-bottom:3px;}
+
+/* ── DELETE CONFIRM MODAL ── */
+.confirm-list{max-height:220px;overflow-y:auto;margin-bottom:1rem;}
+.confirm-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.confirm-item:last-child{border-bottom:none;}
+.confirm-item-title{color:var(--text);font-weight:600;}
+.confirm-item-meta{color:var(--text3);font-size:11px;}
+.confirm-item-via{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;text-transform:uppercase;}
+.via-radarr{background:rgba(229,160,13,.15);color:#e5a00d;border:1px solid rgba(229,160,13,.3);}
+.via-sonarr{background:rgba(91,141,238,.15);color:#7ba8f0;border:1px solid rgba(91,141,238,.3);}
+.via-plex{background:rgba(255,255,255,.06);color:var(--text2);border:1px solid var(--border2);}
+.confirm-warning{background:rgba(226,84,84,.1);border:1px solid rgba(226,84,84,.2);border-radius:var(--radius);padding:.75rem 1rem;font-size:12px;color:#e27070;line-height:1.6;margin-bottom:1rem;}
+.confirm-summary{font-size:12px;color:var(--text2);margin-bottom:.75rem;}
+
+.hidden{display:none!important;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- SVG ICON DEFS (reused inline) -->
+<svg style="display:none"><defs>
+  <symbol id="ic-movie" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="3" x2="5" y2="13" stroke="currentColor" stroke-width="1.2"/><line x1="11" y1="3" x2="11" y2="13" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="6" x2="5" y2="6" stroke="currentColor" stroke-width="1.2"/><line x1="11" y1="6" x2="15" y2="6" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="10" x2="5" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="11" y1="10" x2="15" y2="10" stroke="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="ic-show" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 4L8 1L11 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 8.5L9.5 10.5L6 12.5V8.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></symbol>
+  <symbol id="ic-eye" viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="8" rx="7" ry="4.5" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.4"/><line x1="10.5" y1="10.5" x2="15" y2="15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="ic-play" viewBox="0 0 16 16" fill="none"><polygon points="4,2 14,8 4,14" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="ic-gear" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+  <symbol id="ic-trash" viewBox="0 0 16 16" fill="none"><polyline points="2,4 14,4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M6 4V2.5h4V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="4" width="10" height="9" rx="1" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="7" x2="6" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="10" y1="7" x2="10" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+  <symbol id="ic-warn" viewBox="0 0 24 24" fill="none"><path d="M12 3L22 21H2L12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="18.5" r=".8" fill="currentColor"/></symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none"><polyline points="4,12 9,17 20,7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ic-box" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="ic-pie" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 12L12 3A9 9 0 0 1 21 12Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="ic-conn" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="ic-reload" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.5-3.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><polyline points="10,1 13.5,4.2 10.5,7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<!-- ══ HEADER ══════════════════════════════════════════════ -->
+<header>
+  <div class="logo">Plex<span>cleanup</span></div>
+  <div class="conn-status" id="conn-status">
+    <div class="conn-dot" id="conn-dot"></div>
+    <span id="conn-txt">Not connected</span>
+  </div>
+  <div class="header-stats" id="header-stats" style="display:none">
+    <div class="hstat"><div class="hstat-val" id="hs-total">—</div><div class="hstat-lbl">Total</div></div>
+    <div class="hstat"><div class="hstat-val" id="hs-size">—</div><div class="hstat-lbl">Disk used</div></div>
+    <div class="hstat"><div class="hstat-val" id="hs-marked">0</div><div class="hstat-lbl">Marked</div></div>
+    <div class="hstat"><div class="hstat-val" id="hs-free">—</div><div class="hstat-lbl">Reclaimable</div></div>
+  </div>
+  <button class="hdr-btn" onclick="openSettings()"><svg><use href="#ic-gear"/></svg> Settings</button>
+  <button class="hdr-btn" onclick="loadData()" id="reload-btn" style="display:none"><svg><use href="#ic-reload"/></svg> Reload</button>
+</header>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" id="tab-library" onclick="switchTab('library')">Library</div>
+  <div class="nav-tab" id="tab-charts" onclick="switchTab('charts')">Charts</div>
+  <button class="delete-marked-btn hidden" id="delete-marked-btn" onclick="startDelete()" style="margin:auto 0 auto 1rem;">
+    <svg width="13" height="13"><use href="#ic-trash"/></svg> Delete marked (<span id="del-marked-count">0</span>)
+  </button>
+</div>
+
+<div class="layout">
+  <!-- ══ SIDEBAR ══════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Filters</div>
+      <div class="filter-chip active" onclick="setFilter('all',this)"><span class="dot" style="background:var(--text3)"></span>All<span class="count" id="fc-all">0</span></div>
+      <div class="filter-chip" onclick="setFilter('never',this)"><span class="dot" style="background:#e27070"></span>Never watched<span class="count" id="fc-never">0</span></div>
+      <div class="filter-chip" onclick="setFilter('forgotten',this)"><span class="dot" style="background:#c07ae0"></span>Added, never started (6m+)<span class="count" id="fc-forgotten">0</span></div>
+      <div class="filter-chip" onclick="setFilter('partial',this)" title="Requires Tautulli"><span class="dot" style="background:#e5a00d"></span>Half-watched (&lt;50%, 3m+)<span class="count" id="fc-partial">0</span></div>
+      <div class="filter-chip" onclick="setFilter('stale',this)"><span class="dot" style="background:#7ba8f0"></span>Collecting dust (1yr+)<span class="count" id="fc-stale">0</span></div>
+      <div class="filter-chip" onclick="setFilter('big',this)"><span class="dot" style="background:#4caf80"></span>Large file<span class="count" id="fc-big">0</span></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Sort by</div>
+      <select id="sort-sel" onchange="renderTable()">
+        <option value="size_desc">Size (largest first)</option>
+        <option value="size_asc">Size (smallest first)</option>
+        <option value="added_asc">Date added (oldest)</option>
+        <option value="added_desc">Date added (newest)</option>
+        <option value="last_asc">Last watched (longest ago)</option>
+        <option value="last_desc">Last watched (most recent)</option>
+        <option value="plays_asc">Fewest plays</option>
+        <option value="title_asc">Title A–Z</option>
+      </select>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Export marked</div>
+      <button class="btn btn-sec" style="margin-bottom:6px;" onclick="doExport('csv')">&#8595; Export as CSV</button>
+      <button class="btn btn-sec" onclick="doExport('xls')">&#8595; Export as XLS</button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ════════════════════════════════════════════ -->
+  <div class="main">
+
+    <!-- LIBRARY PANEL -->
+    <div class="panel active" id="panel-library">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon"><svg width="13" height="13"><use href="#ic-search"/></svg></span>
+          <input type="text" id="search-inp" placeholder="Search title..." oninput="renderTable()">
+        </div>
+        <div class="type-toggle">
+          <button class="type-btn active" id="type-all" onclick="setType('all')">All</button>
+          <button class="type-btn" id="type-movie" onclick="setType('movie')">Movies</button>
+          <button class="type-btn" id="type-show" onclick="setType('show')">Shows</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="state-box" id="state-welcome">
+          <div class="state-icon"><svg width="40" height="40"><use href="#ic-conn"/></svg></div>
+          <div class="state-title">Connect your Plex server</div>
+          <div class="state-sub">Open <strong>Settings</strong> in the top-right corner to enter your credentials and connect.</div>
+          <button class="btn" style="width:auto;margin-top:.5rem;" onclick="openSettings()"><svg width="14" height="14"><use href="#ic-gear"/></svg> Open Settings</button>
+        </div>
+        <div class="state-box hidden" id="state-loading">
+          <div class="state-icon pulse"><svg width="40" height="40"><use href="#ic-box"/></svg></div>
+          <div class="state-title">Loading data...</div>
+          <div class="state-sub" id="loading-msg">Connecting to Plex...</div>
+        </div>
+        <div class="state-box hidden" id="state-error">
+          <div class="state-icon"><svg width="40" height="40"><use href="#ic-warn"/></svg></div>
+          <div class="state-title">Error loading data</div>
+          <div class="state-sub" id="error-msg"></div>
+          <button class="btn btn-sec" style="width:auto;" onclick="openSettings()">Check Settings</button>
+        </div>
+        <div class="hidden" id="state-table">
+          <table>
+            <thead><tr>
+              <th class="checkbox-cell"><input type="checkbox" id="sel-all" onchange="toggleAll(this)"></th>
+              <th>Title</th>
+              <th>Type</th>
+              <th onclick="setSort('size_desc')">Size &#8597;</th>
+              <th onclick="setSort('added_asc')">Added &#8597;</th>
+              <th onclick="setSort('last_asc')">Last watched &#8597;</th>
+              <th onclick="setSort('plays_asc')">Plays &#8597;</th>
+              <th>Flags</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div style="padding:.75rem 1.25rem;font-size:11px;color:var(--text3)" id="row-count"></div>
+        </div>
+        <div class="state-box hidden" id="state-empty">
+          <div class="state-icon"><svg width="40" height="40"><use href="#ic-check"/></svg></div>
+          <div class="state-title">No results</div>
+          <div class="state-sub">No titles match the selected filter or search.</div>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div class="conn-dot" id="sdot"></div>
+        <span id="stxt">Not connected</span>
+        <button onclick="toggleDebug()" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text3);cursor:pointer;font-size:10px;padding:2px 8px;font-family:inherit;letter-spacing:.5px;">Debug</button>
+      </div>
+    </div>
+
+    <!-- CHARTS PANEL -->
+    <div class="panel" id="panel-charts">
+      <div class="charts-panel">
+        <div class="state-box" id="charts-placeholder" style="min-height:260px;">
+          <div class="state-icon"><svg width="40" height="40"><use href="#ic-pie"/></svg></div>
+          <div class="state-title">No data loaded</div>
+          <div class="state-sub">Load your library first to see charts.</div>
+        </div>
+        <div class="charts-grid hidden" id="charts-grid">
+          <div class="chart-card"><div class="chart-title">Movies vs Shows — count</div><div class="donut-wrap"><svg width="120" height="120" viewBox="0 0 120 120" id="d-type"></svg><div class="legend" id="l-type"></div></div></div>
+          <div class="chart-card"><div class="chart-title">Disk usage by type</div><div class="donut-wrap"><svg width="120" height="120" viewBox="0 0 120 120" id="d-size"></svg><div class="legend" id="l-size"></div></div></div>
+          <div class="chart-card"><div class="chart-title">Top genres</div><div class="donut-wrap"><svg width="120" height="120" viewBox="0 0 120 120" id="d-genre"></svg><div class="legend" id="l-genre"></div></div></div>
+          <div class="chart-card"><div class="chart-title">Languages</div><div class="donut-wrap"><svg width="120" height="120" viewBox="0 0 120 120" id="d-lang"></svg><div class="legend" id="l-lang"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS MODAL ══════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="settings-modal">
+  <div class="modal" style="width:560px;">
+    <div class="modal-header">
+      <h2><svg width="14" height="14" style="vertical-align:-2px;margin-right:6px"><use href="#ic-gear"/></svg>Settings</h2>
+      <button class="modal-close" onclick="closeSettings()">&#215;</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="settings-section-label">Plex</div>
+      <div class="settings-row">
+        <div class="settings-field">
+          <label>Plex URL</label>
+          <input type="text" id="s-plex-url" placeholder="http://localhost:32400">
+        </div>
+        <div class="settings-field">
+          <label style="display:flex;align-items:center;justify-content:space-between;"><span>Plex Token <button class="help-toggle" onclick="toggleHelp('hp-plex')" style="background:none;border:none;color:var(--info);font-size:10px;font-family:inherit;cursor:pointer;padding:0 0 0 4px;">&#9432; how?</button></span><button class="btn btn-sec btn-sm" onclick="testConn('plex')" id="test-plex-btn" style="padding:3px 8px;font-size:10px;">Test</button></label>
+          <div class="input-wrap"><input type="password" id="s-plex-token" placeholder="xxxxxxxxxxxxxxxxxxxx"><button class="eye-btn" type="button" onclick="toggleEye('s-plex-token',this)"><svg width="14" height="14"><use href="#ic-eye"/></svg></button></div>
+          <div class="help-steps hidden" id="hp-plex" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-top:6px;font-size:11px;color:var(--text2);line-height:1.8;">
+            <ol style="padding-left:1.2em;"><li>Open <strong>app.plex.tv</strong> and sign in</li><li>Click any item → <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-size:10px;color:var(--accent)">⋯</code> → <strong>Get Info</strong></li><li>Click <strong>View XML</strong> bottom-left</li><li>Copy <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-size:10px;color:var(--accent)">X-Plex-Token=</code> from URL</li></ol>
+            <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank" style="color:var(--info);font-size:10px;display:inline-block;margin-top:4px;">&#8599; Official guide</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-sep"></div>
+      <div class="settings-section-label">Tautulli <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;">— optional, enables Half-watched filter</span></div>
+      <div class="settings-row">
+        <div class="settings-field">
+          <label>Tautulli URL</label>
+          <input type="text" id="s-tau-url" placeholder="http://localhost:8181">
+        </div>
+        <div class="settings-field">
+          <label style="display:flex;align-items:center;justify-content:space-between;"><span>API Key <button class="help-toggle" onclick="toggleHelp('hp-tau')" style="background:none;border:none;color:var(--info);font-size:10px;font-family:inherit;cursor:pointer;padding:0 0 0 4px;">&#9432; how?</button></span><button class="btn btn-sec btn-sm" onclick="testConn('tautulli')" id="test-tau-btn" style="padding:3px 8px;font-size:10px;">Test</button></label>
+          <div class="input-wrap"><input type="password" id="s-tau-key" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"><button class="eye-btn" type="button" onclick="toggleEye('s-tau-key',this)"><svg width="14" height="14"><use href="#ic-eye"/></svg></button></div>
+          <div class="help-steps hidden" id="hp-tau" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-top:6px;font-size:11px;color:var(--text2);line-height:1.8;">
+            <ol style="padding-left:1.2em;"><li>Open <strong>Tautulli</strong></li><li><strong>Settings</strong> → <strong>Web Interface</strong></li><li>Scroll to the <strong>API</strong> section</li><li>Copy the <strong>API Key</strong> value</li></ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-sep"></div>
+      <div class="settings-section-label">Deletion method</div>
+      <div class="deletion-choice">
+        <div class="del-option selected" id="delopt-plex" onclick="selectDelOption('plex')">
+          <div class="del-option-title">Plex only</div>
+          <div class="del-option-sub">Delete via Plex API. Simple, no extra setup. Removes file and metadata.</div>
+        </div>
+        <div class="del-option" id="delopt-arr" onclick="selectDelOption('arr')">
+          <div class="del-option-title">Arr apps</div>
+          <div class="del-option-sub">Delete via Radarr/Sonarr. Full stack cleanup — removes from queue and monitoring.</div>
+        </div>
+      </div>
+
+      <div class="arr-section" id="arr-section">
+        <label class="arr-toggle" style="cursor:pointer;user-select:none;" onclick="toggleArr('radarr');event.preventDefault()">
+          <input type="checkbox" id="use-radarr">
+          <span class="arr-toggle-label" style="font-weight:600;color:var(--text)">Radarr <span style="color:var(--text3);font-weight:400;">(movies)</span></span>
+        </label>
+        <div class="arr-fields" id="radarr-fields" style="display:none;">
+          <div><label>Radarr URL</label><input type="text" id="s-radarr-url" placeholder="http://localhost:7878"></div>
+          <div><label style="display:flex;align-items:center;justify-content:space-between;"><span>API Key</span><button class="btn btn-sec btn-sm" onclick="testConn('radarr')" id="test-radarr-btn" style="padding:3px 8px;font-size:10px;">Test</button></label><div class="input-wrap"><input type="password" id="s-radarr-key" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"><button class="eye-btn" type="button" onclick="toggleEye('s-radarr-key',this)"><svg width="14" height="14"><use href="#ic-eye"/></svg></button></div></div>
+        </div>
+        <label class="arr-toggle" style="cursor:pointer;user-select:none;" onclick="toggleArr('sonarr');event.preventDefault()">
+          <input type="checkbox" id="use-sonarr">
+          <span class="arr-toggle-label" style="font-weight:600;color:var(--text)">Sonarr <span style="color:var(--text3);font-weight:400;">(shows)</span></span>
+        </label>
+        <div class="arr-fields" id="sonarr-fields" style="display:none;">
+          <div><label>Sonarr URL</label><input type="text" id="s-sonarr-url" placeholder="http://localhost:8989"></div>
+          <div><label style="display:flex;align-items:center;justify-content:space-between;"><span>API Key</span><button class="btn btn-sec btn-sm" onclick="testConn('sonarr')" id="test-sonarr-btn" style="padding:3px 8px;font-size:10px;">Test</button></label><div class="input-wrap"><input type="password" id="s-sonarr-key" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"><button class="eye-btn" type="button" onclick="toggleEye('s-sonarr-key',this)"><svg width="14" height="14"><use href="#ic-eye"/></svg></button></div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:.5rem;line-height:1.6;">If a title is not found in the arr app, deletion falls back to Plex API automatically.</div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="saveAndConnect()"><svg width="14" height="14"><use href="#ic-play"/></svg> Save &amp; connect</button>
+      <button class="btn btn-sec" onclick="connectOnly()">Connect without saving</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DELETE CONFIRM MODAL ════════════════════════════════ -->
+<div class="modal-overlay hidden" id="confirm-modal">
+  <div class="modal" style="width:500px;">
+    <div class="modal-header">
+      <h2><svg width="14" height="14" style="vertical-align:-2px;margin-right:6px"><use href="#ic-trash"/></svg>Confirm deletion</h2>
+      <button class="modal-close" onclick="closeConfirm()">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warning">
+        <svg width="14" height="14" style="vertical-align:-2px;margin-right:4px"><use href="#ic-warn"/></svg>
+        This will permanently delete the selected titles and their files. This cannot be undone.
+      </div>
+      <div class="confirm-summary" id="confirm-summary"></div>
+      <div class="confirm-list" id="confirm-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="executeDelete()"><svg width="14" height="14"><use href="#ic-trash"/></svg> Delete all</button>
+      <button class="btn btn-sec" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ─── DEBUG LOG ───────────────────────────────────────────────────────────────
+function dbg(...args) {
+  const el = document.getElementById('debug-log');
+  if (!el) return;
+  const line = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+  el.textContent += line + '\n';
+  console.log(...args);
+}
+function toggleDebug() {
+  const p = document.getElementById('debug-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const NOW=Date.now(), DAY=86400000, MONTH=30*DAY;
+let allItems=[], activeFilter='all', activeType='all', markedIds=new Set();
+let plexUrl='', plexToken='';
+let cfg = {}; // runtime config (populated from settings)
+let pendingDeleteItems = []; // items queued for deletion
+
+// ─── STORAGE KEYS ─────────────────────────────────────────────────────────────
+const SK = {
+  plexUrl:'plexcleanup_plex_url', plexToken:'plexcleanup_plex_token',
+  tauUrl:'plexcleanup_tautulli_url', tauKey:'plexcleanup_tautulli_key',
+  delMethod:'plexcleanup_deletion_method',
+  useRadarr:'plexcleanup_arr_radarr', radarrUrl:'plexcleanup_radarr_url', radarrKey:'plexcleanup_radarr_key',
+  useSonarr:'plexcleanup_arr_sonarr', sonarrUrl:'plexcleanup_sonarr_url', sonarrKey:'plexcleanup_sonarr_key',
+};
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function fmtSize(b){
+  if(!b) return '—';
+  if(b>=1e12) return (b/1e12).toFixed(2)+' TB';
+  if(b>=1e9) return (b/1e9).toFixed(1)+' GB';
+  return (b/1e6).toFixed(0)+' MB';
+}
+function fmtDate(ts){
+  if(!ts) return '—';
+  return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+function relDate(ts){
+  if(!ts) return '—';
+  const d=Math.floor((NOW-ts)/DAY);
+  if(d<1) return 'Today'; if(d<7) return d+'d ago';
+  if(d<30) return Math.floor(d/7)+'w ago';
+  if(d<365) return Math.floor(d/30)+'mo ago';
+  return Math.floor(d/365)+'yr ago';
+}
+function ic(id){return `<svg width="16" height="16"><use href="#ic-${id}"/></svg>`;}
+function showState(n){['welcome','loading','error','table','empty'].forEach(s=>document.getElementById('state-'+s).classList.toggle('hidden',s!==n));}
+function setStatus(t,c){
+  document.getElementById('stxt').textContent=t;
+  document.getElementById('sdot').className='conn-dot'+(c?' '+c:'');
+  document.getElementById('conn-txt').textContent=t;
+  document.getElementById('conn-dot').className='conn-dot'+(c?' '+c:'');
+}
+function setMsg(t){const el=document.getElementById('loading-msg');if(el)el.textContent=t;}
+function toggleHelp(id){document.getElementById(id).classList.toggle('hidden');}
+function toggleEye(id,btn){
+  const inp=document.getElementById(id);
+  inp.type=inp.type==='password'?'text':'password';
+  btn.style.color=inp.type==='text'?'var(--accent)':'';
+}
+function switchTab(t){
+  ['library','charts'].forEach(x=>{
+    document.getElementById('tab-'+x).classList.toggle('active',x===t);
+    document.getElementById('panel-'+x).classList.toggle('active',x===t);
+  });
+  if(t==='charts'&&allItems.length) renderCharts();
+}
+function plexPoster(thumb){
+  if(!thumb) return null;
+  // Use direct thumb URL - transcode endpoint has CORS issues from file://
+  return `${plexUrl}${thumb}?X-Plex-Token=${plexToken}&width=92&height=138`;
+}
+
+// ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
+function openSettings(){
+  // Populate fields from saved or runtime cfg
+  const g=k=>localStorage.getItem(k)||'';
+  document.getElementById('s-plex-url').value=g(SK.plexUrl)||plexUrl||'http://localhost:32400';
+  document.getElementById('s-plex-token').value=g(SK.plexToken)||plexToken||'';
+  document.getElementById('s-tau-url').value=g(SK.tauUrl)||'http://localhost:8181';
+  document.getElementById('s-tau-key').value=g(SK.tauKey)||'';
+  const method=g(SK.delMethod)||'plex';
+  selectDelOption(method,false);
+  document.getElementById('use-radarr').checked=g(SK.useRadarr)==='true';
+  document.getElementById('s-radarr-url').value=g(SK.radarrUrl)||'http://localhost:7878';
+  document.getElementById('s-radarr-key').value=g(SK.radarrKey)||'';
+  document.getElementById('use-sonarr').checked=g(SK.useSonarr)==='true';
+  document.getElementById('s-sonarr-url').value=g(SK.sonarrUrl)||'http://localhost:8989';
+  document.getElementById('s-sonarr-key').value=g(SK.sonarrKey)||'';
+  document.getElementById('radarr-fields').style.display=g(SK.useRadarr)==='true'?'grid':'none';
+  document.getElementById('sonarr-fields').style.display=g(SK.useSonarr)==='true'?'grid':'none';
+
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings(){document.getElementById('settings-modal').classList.add('hidden');}
+
+function selectDelOption(val,updateUI=true){
+  cfg.delMethod=val;
+  if(updateUI){
+    document.getElementById('delopt-plex').classList.toggle('selected',val==='plex');
+    document.getElementById('delopt-arr').classList.toggle('selected',val==='arr');
+    document.getElementById('arr-section').classList.toggle('visible',val==='arr');
+  } else {
+    document.getElementById('delopt-plex').classList.toggle('selected',val==='plex');
+    document.getElementById('delopt-arr').classList.toggle('selected',val==='arr');
+    document.getElementById('arr-section').classList.toggle('visible',val==='arr');
+  }
+}
+
+function toggleArr(which){
+  const cb=document.getElementById('use-'+which);
+  cb.checked=!cb.checked;
+  document.getElementById(which+'-fields').style.display=cb.checked?'grid':'none';
+  document.getElementById('test-'+which+'-btn').style.display=cb.checked?'':'none';
+}
+
+function readSettings(){
+  return {
+    plexUrl: document.getElementById('s-plex-url').value.trim().replace(/\/$/,''),
+    plexToken: document.getElementById('s-plex-token').value.trim(),
+    tauUrl: document.getElementById('s-tau-url').value.trim().replace(/\/$/,''),
+    tauKey: document.getElementById('s-tau-key').value.trim(),
+    delMethod: cfg.delMethod||'plex',
+    useRadarr: document.getElementById('use-radarr').checked,
+    radarrUrl: document.getElementById('s-radarr-url').value.trim().replace(/\/$/,''),
+    radarrKey: document.getElementById('s-radarr-key').value.trim(),
+    useSonarr: document.getElementById('use-sonarr').checked,
+    sonarrUrl: document.getElementById('s-sonarr-url').value.trim().replace(/\/$/,''),
+    sonarrKey: document.getElementById('s-sonarr-key').value.trim(),
+  };
+}
+
+function saveAndConnect(){
+  const s=readSettings();
+  if(!s.plexToken){alert('Please enter your Plex URL and Token.');return;}
+  localStorage.setItem(SK.plexUrl,s.plexUrl);
+  localStorage.setItem(SK.plexToken,s.plexToken);
+  localStorage.setItem(SK.tauUrl,s.tauUrl);
+  localStorage.setItem(SK.tauKey,s.tauKey);
+  localStorage.setItem(SK.delMethod,s.delMethod);
+  localStorage.setItem(SK.useRadarr,s.useRadarr);
+  localStorage.setItem(SK.radarrUrl,s.radarrUrl);
+  localStorage.setItem(SK.radarrKey,s.radarrKey);
+  localStorage.setItem(SK.useSonarr,s.useSonarr);
+  localStorage.setItem(SK.sonarrUrl,s.sonarrUrl);
+  localStorage.setItem(SK.sonarrKey,s.sonarrKey);
+  cfg=s; resetArrCaches(); closeSettings(); loadData();
+}
+
+function connectOnly(){
+  const s=readSettings();
+  if(!s.plexToken){alert('Please enter your Plex URL and Token.');return;}
+  cfg=s; resetArrCaches(); closeSettings(); loadData();
+}
+
+// ─── AUTO-OPEN SETTINGS on first load ─────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  const saved=localStorage.getItem(SK.plexToken);
+  if(saved){
+    // Restore saved config and auto-connect
+    cfg={
+      plexUrl:localStorage.getItem(SK.plexUrl)||'http://localhost:32400',
+      plexToken:localStorage.getItem(SK.plexToken)||'',
+      tauUrl:localStorage.getItem(SK.tauUrl)||'http://localhost:8181',
+      tauKey:localStorage.getItem(SK.tauKey)||'',
+      delMethod:localStorage.getItem(SK.delMethod)||'plex',
+      useRadarr:localStorage.getItem(SK.useRadarr)==='true',
+      radarrUrl:localStorage.getItem(SK.radarrUrl)||'',
+      radarrKey:localStorage.getItem(SK.radarrKey)||'',
+      useSonarr:localStorage.getItem(SK.useSonarr)==='true',
+      sonarrUrl:localStorage.getItem(SK.sonarrUrl)||'',
+      sonarrKey:localStorage.getItem(SK.sonarrKey)||'',
+    };
+    loadData();
+  } else {
+    openSettings();
+  }
+});
+
+// ─── CLASSIFY ────────────────────────────────────────────────────────────────
+function classify(item){
+  const tags=[], aa=NOW-item.addedAt, al=item.lastPlayed?(NOW-item.lastPlayed):null;
+  if(item.plays===0){tags.push('never'); if(aa>6*MONTH)tags.push('forgotten');}
+  if(item.plays>0&&item.watchedPct!==null&&item.watchedPct<50&&al>3*MONTH)tags.push('partial');
+  if(item.plays>0&&al!==null&&al>12*MONTH)tags.push('stale');
+  const bigThresh=item.type==='movie'?18e9:80e9;
+  if(item.size>bigThresh)tags.push('big');
+  item.tags=tags; return item;
+}
+function tagLabel(t){return{never:'Never watched',forgotten:'Forgotten',partial:'Half-watched',stale:'Stale',big:'Large file'}[t]||t;}
+function updateCounts(items){
+  const c={all:items.length,never:0,forgotten:0,partial:0,stale:0,big:0};
+  items.forEach(i=>i.tags.forEach(t=>{if(c[t]!==undefined)c[t]++;}));
+  Object.keys(c).forEach(k=>{const el=document.getElementById('fc-'+k);if(el)el.textContent=c[k];});
+}
+
+// ─── TABLE ───────────────────────────────────────────────────────────────────
+function getFiltered(){
+  let items=allItems.slice();
+  if(activeType!=='all')items=items.filter(i=>i.type===activeType);
+  const q=document.getElementById('search-inp').value.toLowerCase().trim();
+  if(q)items=items.filter(i=>i.title.toLowerCase().includes(q));
+  if(activeFilter!=='all')items=items.filter(i=>i.tags.includes(activeFilter));
+  const s=document.getElementById('sort-sel').value;
+  items.sort((a,b)=>{
+    switch(s){
+      case 'size_desc':return(b.size||0)-(a.size||0); case 'size_asc':return(a.size||0)-(b.size||0);
+      case 'added_asc':return a.addedAt-b.addedAt; case 'added_desc':return b.addedAt-a.addedAt;
+      case 'last_asc':return(a.lastPlayed||0)-(b.lastPlayed||0); case 'last_desc':return(b.lastPlayed||0)-(a.lastPlayed||0);
+      case 'plays_asc':return a.plays-b.plays; case 'title_asc':return a.title.localeCompare(b.title,'en');
+      default:return 0;
+    }
+  });
+  return items;
+}
+
+function renderTable(){
+  if(!allItems.length)return;
+  const items=getFiltered();
+  if(!items.length){showState('empty');return;}
+  showState('table');
+  const maxSz=Math.max(...allItems.map(i=>i.size||0))||1;
+  document.getElementById('tbody').innerHTML=items.map(item=>{
+    const m=markedIds.has(item.id),p=Math.round(((item.size||0)/maxSz)*100);
+    const tags=item.tags.map(t=>`<span class="tag tag-${t}">${tagLabel(t)}</span>`).join('');
+    const pUrl=item.thumb?plexPoster(item.thumb):null;
+    const posterHtml=pUrl
+      ?`<img src="${pUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${item.type==='movie'?ic('movie'):ic('show')}'">` 
+      :ic(item.type==='movie'?'movie':'show');
+    return `<tr class="${m?'marked':''}" id="r-${item.id}">
+      <td class="checkbox-cell"><input type="checkbox"${m?' checked':''} onchange="toggleMark('${item.id}',this)"></td>
+      <td><div class="title-cell"><div class="thumb-ph">${posterHtml}</div><div><div class="title-name">${item.title}</div><div class="title-meta">${item.year||''}${item.type==='show'&&item.seasons?' · '+item.seasons+' season'+(item.seasons>1?'s':''):''}</div></div></div></td>
+      <td><span class="tag tag-${item.type}">${item.type==='movie'?'Movie':'Show'}</span></td>
+      <td><div class="size-wrap"><div class="size-bar"><div class="size-fill" style="width:${p}%"></div></div><span class="size-txt">${fmtSize(item.size)}</span></div></td>
+      <td style="color:var(--text2);font-size:12px;white-space:nowrap">${fmtDate(item.addedAt)}</td>
+      <td style="color:var(--text2);font-size:12px;white-space:nowrap">${item.lastPlayed?relDate(item.lastPlayed):'<span style="color:var(--text3)">Never</span>'}</td>
+      <td style="color:var(--text2);text-align:center">${item.plays}</td>
+      <td>${tags||'<span style="color:var(--text3);font-size:11px;">OK</span>'}</td>
+      <td><button class="row-del-btn" onclick="startDeleteSingle('${item.id}')" title="Delete">${ic('trash')}</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('row-count').textContent=`Showing ${items.length} of ${allItems.length} titles`;
+  updateHeaderStats();
+}
+
+function updateHeaderStats(){
+  document.getElementById('header-stats').style.display='flex';
+  document.getElementById('hs-total').textContent=allItems.length;
+  document.getElementById('hs-size').textContent=fmtSize(allItems.reduce((s,i)=>s+(i.size||0),0));
+  const mc=markedIds.size;
+  document.getElementById('hs-marked').textContent=mc;
+  document.getElementById('hs-free').textContent=fmtSize(allItems.filter(i=>markedIds.has(i.id)).reduce((s,i)=>s+(i.size||0),0));
+  document.getElementById('del-marked-count').textContent=mc;
+  document.getElementById('delete-marked-btn').classList.toggle('hidden',mc===0);
+  document.getElementById('reload-btn').style.display='';
+}
+
+function setFilter(f,el){activeFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTable();}
+function setType(t){activeType=t;document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));document.getElementById('type-'+t).classList.add('active');renderTable();}
+function setSort(v){document.getElementById('sort-sel').value=v;renderTable();}
+function toggleMark(id,cb){if(cb.checked)markedIds.add(id);else markedIds.delete(id);document.getElementById('r-'+id)?.classList.toggle('marked',cb.checked);updateHeaderStats();}
+function toggleAll(cb){getFiltered().forEach(i=>{if(cb.checked)markedIds.add(i.id);else markedIds.delete(i.id);});renderTable();}
+
+// ─── EXPORT ──────────────────────────────────────────────────────────────────
+function doExport(fmt){
+  if(!markedIds.size){alert('No titles marked.');return;}
+  const rows=allItems.filter(i=>markedIds.has(i.id));
+  const iso=ts=>ts?new Date(ts).toISOString().slice(0,10):'';
+  if(fmt==='csv'){
+    const hdr='Title,Year,Type,Size (GB),Added,Last Watched,Plays,Flags\n';
+    const body=rows.map(i=>['"'+i.title.replace(/"/g,'""')+'"',i.year||'',i.type==='movie'?'Movie':'Show',i.size?(i.size/1e9).toFixed(2):'',iso(i.addedAt),i.lastPlayed?iso(i.lastPlayed):'Never',i.plays,'"'+i.tags.map(tagLabel).join(', ')+'"'].join(',')).join('\n');
+    dl(hdr+body,'plex-cleanup.csv','text/csv');
+  } else {
+    const th='<tr><th>Title</th><th>Year</th><th>Type</th><th>Size (GB)</th><th>Added</th><th>Last Watched</th><th>Plays</th><th>Flags</th></tr>';
+    const tb=rows.map(i=>`<tr><td>${i.title}</td><td>${i.year||''}</td><td>${i.type==='movie'?'Movie':'Show'}</td><td>${i.size?(i.size/1e9).toFixed(2):''}</td><td>${iso(i.addedAt)}</td><td>${i.lastPlayed?iso(i.lastPlayed):'Never'}</td><td>${i.plays}</td><td>${i.tags.map(tagLabel).join(', ')}</td></tr>`).join('');
+    dl(`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table>${th}${tb}</table>
+<!-- ══ ERROR TOAST ════════════════════════════════════════ -->
+<div id="err-toast" style="display:none;position:fixed;bottom:2rem;right:2rem;z-index:500;max-width:420px;">
+  <div style="background:var(--bg2);border:1px solid rgba(226,84,84,.4);border-left:3px solid var(--danger);border-radius:var(--radius-lg);padding:1rem 1.25rem;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+    <div style="display:flex;align-items:flex-start;gap:10px;">
+      <svg width="16" height="16" style="flex-shrink:0;margin-top:1px;color:var(--danger)"><use href="#ic-warn"/></svg>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:4px;" id="err-toast-title">Deletion failed</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;word-break:break-word;" id="err-toast-body"></div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.5;" id="err-toast-hint"></div>
+      </div>
+      <button onclick="document.getElementById('err-toast').style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">&#215;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DEBUG PANEL ════════════════════════════════════════════ -->
+<div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;background:#0a0a0c;border-top:2px solid var(--accent);max-height:220px;overflow-y:auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:#0a0a0c;">
+    <span style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;">GUID Debug Log</span>
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="document.getElementById('debug-log').textContent=''" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text3);cursor:pointer;font-size:10px;padding:2px 8px;font-family:inherit;">Clear</button>
+      <button onclick="toggleDebug()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;">&#215;</button>
+    </div>
+  </div>
+  <pre id="debug-log" style="font-size:11px;color:var(--text2);padding:.75rem 1rem;margin:0;white-space:pre-wrap;word-break:break-all;line-height:1.6;"></pre>
+</div>
+</body></html>`,'plex-cleanup.xls','application/vnd.ms-excel');
+  }
+}
+function dl(content,name,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=name;a.click();}
+
+// ─── DELETE FLOW ──────────────────────────────────────────────────────────────
+function startDeleteSingle(id){
+  const item=allItems.find(i=>i.id===id);
+  if(item) openConfirm([item]);
+}
+function startDelete(){
+  const items=allItems.filter(i=>markedIds.has(i.id));
+  if(!items.length) return;
+  openConfirm(items);
+}
+
+// Normalize title for fuzzy matching
+function normTitle(t) {
+  return (t||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+// Cache for arr libraries — fetched once per confirm dialog open
+let radarrCache = null; // Map: tmdbId -> radarrInternalId, imdbId -> radarrInternalId
+let sonarrCache = null; // Map: tvdbId -> sonarrInternalId
+
+async function buildRadarrCache() {
+  if (radarrCache) return;
+  try {
+    const r = await fetch(`${cfg.radarrUrl}/api/v3/movie`, {headers:{'X-Api-Key':cfg.radarrKey}});
+    if (!r.ok) { dbg('[Radarr] Fetch failed HTTP', r.status); return; }
+    const movies = await r.json();
+    radarrCache = {};
+    movies.forEach(m => {
+      if (m.tmdbId) radarrCache['tmdb:'+m.tmdbId] = m.id;
+      if (m.imdbId) radarrCache['imdb:'+m.imdbId] = m.id;
+      // Also index by normalized title + year for fallback matching
+      const titleKey = 'title:' + normTitle(m.title) + ':' + (m.year||'');
+      radarrCache[titleKey] = m.id;
+    });
+    dbg('[Radarr] Cache built:', Object.keys(radarrCache).length, 'entries (tmdb+imdb+title keys)');
+  } catch(e) { dbg('[Radarr] Cache error:', e.message); }
+}
+
+async function buildSonarrCache() {
+  if (sonarrCache) return;
+  try {
+    const r = await fetch(`${cfg.sonarrUrl}/api/v3/series`, {headers:{'X-Api-Key':cfg.sonarrKey}});
+    if (!r.ok) { dbg('[Sonarr] Fetch failed HTTP', r.status); return; }
+    const series = await r.json();
+    sonarrCache = {};
+    series.forEach(s => {
+      if (s.tvdbId) sonarrCache['tvdb:'+s.tvdbId] = s.id;
+      const titleKey = 'title:' + normTitle(s.title) + ':' + (s.year||'');
+      sonarrCache[titleKey] = s.id;
+    });
+    dbg('[Sonarr] Cache built:', Object.keys(sonarrCache).length, 'entries (tvdb+title keys)');
+  } catch(e) { dbg('[Sonarr] Cache error:', e.message); }
+}
+
+// Reset caches when settings change
+function resetArrCaches() { radarrCache = null; sonarrCache = null; }
+
+async function resolveVia(item){
+  const m = cfg.delMethod;
+  if (m === 'plex') return {via:'plex'};
+
+  if (m === 'arr') {
+    const gids = item.guids || [];
+    const tmdbGuid = gids.find(g => g.startsWith('tmdb://'));
+    const imdbGuid = gids.find(g => g.startsWith('imdb://'));
+    const tvdbGuid = gids.find(g => g.startsWith('tvdb://'));
+
+    if (item.type === 'movie' && cfg.useRadarr) {
+      await buildRadarrCache();
+      if (radarrCache) {
+        let radarrId = null;
+
+        // 1. Try TMDB id match
+        if (tmdbGuid) {
+          const tmdbId = tmdbGuid.replace('tmdb://', '');
+          radarrId = radarrCache['tmdb:' + tmdbId] || radarrCache['tmdb:' + parseInt(tmdbId)];
+          if (radarrId) dbg('[Radarr] Matched via TMDB:', item.title, tmdbId, '→', radarrId);
+        }
+
+        // 2. Try IMDB id match
+        if (!radarrId && imdbGuid) {
+          const imdbId = imdbGuid.replace('imdb://', '');
+          radarrId = radarrCache['imdb:' + imdbId];
+          if (radarrId) dbg('[Radarr] Matched via IMDB:', item.title, imdbId, '→', radarrId);
+        }
+
+        // 3. Fallback: title + year match against full Radarr library
+        if (!radarrId) {
+          dbg('[Radarr] No GUID match for', item.title, '— trying title+year fallback. Guids:', gids);
+          radarrId = radarrCache['title:' + normTitle(item.title) + ':' + (item.year||'')];
+          if (radarrId) dbg('[Radarr] Matched via title+year:', item.title, item.year, '→', radarrId);
+          else dbg('[Radarr] No match at all for:', item.title, '(', item.year, ')');
+        }
+
+        if (radarrId) return {via:'radarr', arrId:radarrId};
+      }
+    }
+
+    if (item.type === 'show' && cfg.useSonarr) {
+      await buildSonarrCache();
+      if (sonarrCache) {
+        let sonarrId = null;
+
+        // 1. Try TVDB id match
+        if (tvdbGuid) {
+          const tvdbId = tvdbGuid.replace('tvdb://', '');
+          sonarrId = sonarrCache['tvdb:' + tvdbId] || sonarrCache['tvdb:' + parseInt(tvdbId)];
+          if (sonarrId) dbg('[Sonarr] Matched via TVDB:', item.title, tvdbId, '→', sonarrId);
+        }
+
+        // 2. Fallback: title + year
+        if (!sonarrId) {
+          dbg('[Sonarr] No GUID match for', item.title, '— trying title+year. Guids:', gids);
+          sonarrId = sonarrCache['title:' + normTitle(item.title) + ':' + (item.year||'')];
+          if (sonarrId) dbg('[Sonarr] Matched via title+year:', item.title, '→', sonarrId);
+          else dbg('[Sonarr] No match at all for:', item.title, '(', item.year, ')');
+        }
+
+        if (sonarrId) return {via:'sonarr', arrId:sonarrId};
+      }
+    }
+
+    return {via:'plex', fallback:true};
+  }
+  return {via:'plex'};
+}
+
+
+async function openConfirm(items){
+  pendingDeleteItems=items;
+  // Pre-resolve each item's deletion route
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  document.getElementById('confirm-summary').textContent=`Resolving deletion routes for ${items.length} title${items.length>1?'s':''}...`;
+  document.getElementById('confirm-list').innerHTML='';
+
+  const resolved=await Promise.all(items.map(async item=>{
+    const r=await resolveVia(item);
+    return{...item,via:r.via,arrId:r.arrId,fallback:r.fallback};
+  }));
+  pendingDeleteItems=resolved;
+
+  const totalSize=resolved.reduce((s,i)=>s+(i.size||0),0);
+  document.getElementById('confirm-summary').textContent=
+    `${resolved.length} title${resolved.length>1?'s':''} — ${fmtSize(totalSize)} will be freed`;
+
+  document.getElementById('confirm-list').innerHTML=resolved.map(item=>`
+    <div class="confirm-item">
+      <div>
+        <div class="confirm-item-title">${item.title} ${item.year?'('+item.year+')':''}</div>
+        <div class="confirm-item-meta">${item.type==='movie'?'Movie':'Show'} · ${fmtSize(item.size)}${item.fallback?' · arr not found, using Plex':''}</div>
+      </div>
+      <span class="confirm-item-via via-${item.via}">${item.via}</span>
+    </div>`).join('');
+}
+
+function closeConfirm(){document.getElementById('confirm-modal').classList.add('hidden');}
+
+
+async function testConn(service) {
+  // Find the result element adjacent to this service's test button
+  const btn = document.getElementById('test-'+service+'-btn') || document.getElementById('test-plex-btn');
+  const showResult = (msg, ok) => {
+    let el = document.getElementById('test-result-'+service);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'test-result-'+service;
+      el.style.cssText = 'font-size:10px;margin-top:3px;';
+      const targetBtn = document.getElementById('test-'+service+'-btn');
+      if (targetBtn) targetBtn.closest('label')?.after(el);
+    }
+    el.style.color = ok ? 'var(--success)' : 'var(--danger)';
+    el.textContent = msg;
+    clearTimeout(el._t);
+    el._t = setTimeout(()=>el.textContent='', 8000);
+  };
+  showResult('Testing...', true);
+
+  const pUrl = document.getElementById('s-plex-url').value.trim().replace(/\/$/,'');
+  const pTok = document.getElementById('s-plex-token').value.trim();
+  const tUrl = document.getElementById('s-tau-url').value.trim().replace(/\/$/,'');
+  const tKey = document.getElementById('s-tau-key').value.trim();
+  const rUrl = document.getElementById('s-radarr-url').value.trim().replace(/\/$/,'');
+  const rKey = document.getElementById('s-radarr-key').value.trim();
+  const sUrl = document.getElementById('s-sonarr-url').value.trim().replace(/\/$/,'');
+  const sKey = document.getElementById('s-sonarr-key').value.trim();
+
+  try {
+    let r, label;
+    if (service === 'plex') {
+      r = await fetch(`${pUrl}/identity?X-Plex-Token=${pTok}`, {headers:{Accept:'application/json'}});
+      label = 'Plex';
+    } else if (service === 'tautulli') {
+      r = await fetch(`${tUrl}/api/v2?apikey=${tKey}&cmd=get_server_info`);
+      label = 'Tautulli';
+    } else if (service === 'radarr') {
+      r = await fetch(`${rUrl}/api/v3/system/status`, {headers:{'X-Api-Key':rKey}});
+      label = 'Radarr';
+    } else if (service === 'sonarr') {
+      r = await fetch(`${sUrl}/api/v3/system/status`, {headers:{'X-Api-Key':sKey}});
+      label = 'Sonarr';
+    }
+    if (r && r.ok) {
+      showResult(label + ' OK', true);
+    } else {
+      showResult(label + ' error: HTTP ' + (r ? r.status : 'no response'), false);
+    }
+  } catch(e) {
+    showResult(service + ' failed: ' + (e.message || 'Network error'), false);
+  }
+}
+function stripHtml(s){
+  return s.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+}
+function showErrToast(title, body, hint){
+  document.getElementById('err-toast-title').textContent = title;
+  document.getElementById('err-toast-body').textContent = body;
+  document.getElementById('err-toast-hint').textContent = hint||'';
+  const toast = document.getElementById('err-toast');
+  toast.style.display = 'block';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(()=>{ toast.style.display='none'; }, 12000);
+}
+
+async function executeDelete(){
+  closeConfirm();
+  const errors = [];
+  for(const item of pendingDeleteItems){
+    const row=document.getElementById('r-'+item.id);
+    if(row)row.classList.add('deleting');
+    let ok=false, errMsg='', statusCode=null;
+    try{
+      let r;
+      if(item.via==='radarr'){
+        // Radarr: DELETE with X-Api-Key header, deleteFiles=true, addImportExclusion=false
+        r=await fetch(`${cfg.radarrUrl}/api/v3/movie/${item.arrId}?deleteFiles=true&addImportExclusion=false`,{
+          method:'DELETE',
+          headers:{'X-Api-Key':cfg.radarrKey,'Content-Type':'application/json'}
+        });
+      } else if(item.via==='sonarr'){
+        // Sonarr: DELETE with X-Api-Key header, deleteFiles=true
+        r=await fetch(`${cfg.sonarrUrl}/api/v3/series/${item.arrId}?deleteFiles=true&addImportListExclusion=false`,{
+          method:'DELETE',
+          headers:{'X-Api-Key':cfg.sonarrKey,'Content-Type':'application/json'}
+        });
+      } else {
+        r=await fetch(`${plexUrl}/library/metadata/${item.id}?X-Plex-Token=${plexToken}`,{method:'DELETE'});
+      }
+      statusCode = r.status;
+      ok = r.ok || r.status===200 || r.status===204;
+      if(!ok){
+        // Try to read error body
+        try{ const txt=await r.text(); errMsg=stripHtml(txt).substring(0,300).trim(); }catch(e){}
+        if(!errMsg) errMsg=`HTTP ${statusCode}`;
+      }
+    }catch(e){
+      errMsg = e.message||'Network error';
+      console.warn('Delete error:', item.title, e);
+    }
+
+    if(row){
+      if(ok){
+        setTimeout(()=>{row.classList.add('deleted');},400);
+        allItems=allItems.filter(i=>i.id!==item.id);
+        markedIds.delete(item.id);
+      } else {
+        row.classList.remove('deleting');
+        const lastTd=row.querySelector('td:last-child');
+        if(lastTd)lastTd.innerHTML=`<button class="row-del-btn" style="opacity:1;color:var(--danger)" onclick="showErrToast('Failed: ${item.title.replace(/'/g,"\'")}','${errMsg.replace(/'/g,"\'")}','')" title="Show error"><svg width="13" height="13"><use href="#ic-warn"/></svg></button>`;
+        errors.push({title:item.title, msg:errMsg, status:statusCode});
+      }
+    }
+  }
+
+  // Show consolidated error toast if any failed
+  if(errors.length){
+    const isPlexDelete = pendingDeleteItems.some(i=>i.via==='plex');
+    let hint='';
+    if(isPlexDelete && errors.some(e=>e.status===405||e.status===401||e.status===403||!e.status)){
+      hint='Tip: In Plex, go to Settings > Server > Library and enable Allow media deletion. Then try again.';
+    }
+    const firstErr = errors[0];
+    showErrToast(
+      `Failed to delete ${errors.length} title${errors.length>1?'s':''}`,
+      `"${firstErr.title}": ${firstErr.msg}${errors.length>1?' (and '+(errors.length-1)+' more)':''}`,
+      hint
+    );
+  }
+
+  setTimeout(()=>{updateCounts(allItems);updateHeaderStats();},500);
+}
+
+// ─── DONUT CHARTS ────────────────────────────────────────────────────────────
+const COLORS=['#e5a00d','#5b8dee','#4caf80','#e25454','#c07ae0','#f09060','#50c8d0','#e07090','#80c0a0'];
+function donut(svgId,legendId,segs,cLabel,cSub){
+  const svg=document.getElementById(svgId),leg=document.getElementById(legendId);
+  const total=segs.reduce((s,x)=>s+x.v,0);
+  if(!total){svg.innerHTML='';leg.innerHTML='<span style="font-size:11px;color:var(--text3)">No data</span>';return;}
+  const cx=60,cy=60,r=46,ir=29;let a=-Math.PI/2,paths='';
+  segs.forEach((seg,i)=>{
+    const sw=(seg.v/total)*2*Math.PI;
+    const x1=cx+r*Math.cos(a),y1=cy+r*Math.sin(a);
+    a+=sw;
+    const x2=cx+r*Math.cos(a),y2=cy+r*Math.sin(a);
+    const ix1=cx+ir*Math.cos(a-sw),iy1=cy+ir*Math.sin(a-sw);
+    const ix2=cx+ir*Math.cos(a),iy2=cy+ir*Math.sin(a);
+    const lg=sw>Math.PI?1:0;
+    paths+=`<path d="M${fx(x1)},${fx(y1)} A${r},${r} 0 ${lg},1 ${fx(x2)},${fx(y2)} L${fx(ix2)},${fx(iy2)} A${ir},${ir} 0 ${lg},0 ${fx(ix1)},${fx(iy1)} Z" fill="${COLORS[i%COLORS.length]}"/>`;
+  });
+  svg.innerHTML=paths+`<text x="60" y="57" text-anchor="middle" style="font-family:inherit;font-size:12px;font-weight:700;fill:#f0f0f0">${cLabel}</text><text x="60" y="69" text-anchor="middle" style="font-family:inherit;font-size:9px;fill:#5a5a6a">${cSub}</text>`;
+  leg.innerHTML=segs.slice(0,7).map((seg,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div><span class="legend-label">${seg.l}</span><span class="legend-val">${seg.d||Math.round(seg.v/total*100)+'%'}</span></div>`).join('');
+}
+function fx(n){return n.toFixed(2);}
+function renderCharts(){
+  document.getElementById('charts-placeholder').classList.add('hidden');
+  document.getElementById('charts-grid').classList.remove('hidden');
+  const movies=allItems.filter(i=>i.type==='movie'),shows=allItems.filter(i=>i.type==='show');
+  donut('d-type','l-type',[{l:'Movies',v:movies.length,d:movies.length+''},{l:'Shows',v:shows.length,d:shows.length+''}],allItems.length+'','titles');
+  const ms=movies.reduce((s,i)=>s+(i.size||0),0),ss=shows.reduce((s,i)=>s+(i.size||0),0);
+  donut('d-size','l-size',[{l:'Movies',v:ms,d:fmtSize(ms)},{l:'Shows',v:ss,d:fmtSize(ss)}],fmtSize(ms+ss),'total');
+  const gm={};allItems.forEach(i=>(i.genres||[]).forEach(g=>gm[g]=(gm[g]||0)+1));
+  const gt=Object.entries(gm).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  if(gt.length)donut('d-genre','l-genre',gt.map(([g,v])=>({l:g,v})),gt[0][0],'top genre');
+  else{document.getElementById('d-genre').innerHTML='';document.getElementById('l-genre').innerHTML='<span style="font-size:11px;color:var(--text3)">No genre data.</span>';}
+  const lm={};allItems.forEach(i=>(i.languages||[]).forEach(l=>{if(l)lm[l]=(lm[l]||0)+1;}));
+  const lt=Object.entries(lm).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  if(lt.length)donut('d-lang','l-lang',lt.map(([l,v])=>({l,v})),lt[0][0],'top language');
+  else{document.getElementById('d-lang').innerHTML='';document.getElementById('l-lang').innerHTML='<span style="font-size:11px;color:var(--text3)">No language data.</span>';}
+}
+
+// ─── PROCESS DATA ─────────────────────────────────────────────────────────────
+function processData(items){
+  allItems=items.map(classify);
+  updateCounts(allItems);
+  renderTable();
+  setStatus(`Connected — ${allItems.length} titles loaded`,'green');
+  // Log GUID format of first few movies
+  const sample = items.filter(i=>i.type==='movie').slice(0,5);
+  dbg('[GUID] First 5 movies:');
+  sample.forEach(i=>dbg(' ', i.title, '->', JSON.stringify(i.guids)));
+  dbg('[GUID] Total movies:', items.filter(i=>i.type==='movie').length, '| Total shows:', items.filter(i=>i.type==='show').length);
+}
+
+// ─── LOAD DATA ────────────────────────────────────────────────────────────────
+async function loadData(){
+  plexUrl=cfg.plexUrl; plexToken=cfg.plexToken;
+  if(!plexToken){openSettings();return;}
+  showState('loading');setStatus('Loading data...','yellow');
+  try{
+    setMsg('Connecting to Plex...');
+    const sr=await fetch(`${plexUrl}/library/sections?X-Plex-Token=${plexToken}`,{headers:{Accept:'application/json'}});
+    if(!sr.ok)throw new Error(`Plex responded with HTTP ${sr.status}. Check your URL and Token.`);
+    const sd=await sr.json();
+    const sections=sd.MediaContainer.Directory||[];
+    const items=[];
+
+    for(const sec of sections){
+      if(!['movie','show'].includes(sec.type))continue;
+      setMsg(`Fetching "${sec.title}" library...`);
+      const lr=await fetch(`${plexUrl}/library/sections/${sec.key}/all?X-Plex-Token=${plexToken}&X-Plex-Container-Size=50000`,{headers:{Accept:'application/json'}});
+      const ld=await lr.json();
+      const entries=ld.MediaContainer.Metadata||[];
+
+      if(sec.type==='movie'){
+        for(const e of entries){
+          let size=0;
+          if(e.Media)e.Media.forEach(m=>{if(m.Part)m.Part.forEach(p=>size+=p.size||0);});
+          const langs=[...new Set((e.Media||[]).flatMap(m=>(m.Part||[]).flatMap(p=>(p.Stream||[]).filter(s=>s.streamType===2).map(s=>s.languageTag||s.language||'').filter(Boolean))))];
+          const guids=(e.Guid||[]).map(g=>typeof g==='string'?g:(g.id||'')).filter(Boolean);
+          if(guids.length===0&&e.guid) guids.push(...(e.guid.split(',').map(s=>s.trim()).filter(Boolean)));
+          items.push({id:String(e.ratingKey),title:e.title,year:e.year,type:'movie',size,addedAt:(e.addedAt||0)*1000,lastPlayed:e.lastViewedAt?e.lastViewedAt*1000:null,plays:0,watchedPct:null,seasons:null,genres:(e.Genre||[]).map(g=>g.tag),languages:langs,thumb:e.thumb||null,guids,plexViewCount:e.viewCount||0});
+        }
+      } else {
+        setMsg(`Fetching episodes for "${sec.title}"...`);
+        const showSizeMap={},showLangMap={};
+        try{
+          const er=await fetch(`${plexUrl}/library/sections/${sec.key}/all?type=4&X-Plex-Token=${plexToken}&X-Plex-Container-Size=100000`,{headers:{Accept:'application/json'}});
+          const ed=await er.json();
+          (ed.MediaContainer.Metadata||[]).forEach(ep=>{
+            const sid=String(ep.grandparentRatingKey);
+            let epSize=0;
+            if(ep.Media)ep.Media.forEach(m=>{if(m.Part)m.Part.forEach(p=>epSize+=p.size||0);});
+            showSizeMap[sid]=(showSizeMap[sid]||0)+epSize;
+            const langs=(ep.Media||[]).flatMap(m=>(m.Part||[]).flatMap(p=>(p.Stream||[]).filter(s=>s.streamType===2).map(s=>s.languageTag||s.language||'').filter(Boolean)));
+            if(!showLangMap[sid])showLangMap[sid]=new Set();
+            langs.forEach(l=>showLangMap[sid].add(l));
+          });
+        }catch(ex){console.warn('Episode fetch error:',ex);}
+        for(const e of entries){
+          const sid=String(e.ratingKey);
+          const guids=(e.Guid||[]).map(g=>typeof g==='string'?g:(g.id||'')).filter(Boolean);
+          if(guids.length===0&&e.guid) guids.push(...(e.guid.split(',').map(s=>s.trim()).filter(Boolean)));
+          items.push({id:sid,title:e.title,year:e.year,type:'show',size:showSizeMap[sid]||0,addedAt:(e.addedAt||0)*1000,lastPlayed:e.lastViewedAt?e.lastViewedAt*1000:null,plays:0,watchedPct:null,seasons:e.childCount||null,genres:(e.Genre||[]).map(g=>g.tag),languages:[...(showLangMap[sid]||[])],thumb:e.thumb||null,guids,plexViewCount:e.viewCount||0});
+        }
+      }
+    }
+
+    // Use Plex viewCount as baseline — always available, no Tautulli needed
+    items.forEach(item=>{
+      if((item.plexViewCount||0)>0) item.plays=item.plexViewCount;
+    });
+
+    // Tautulli enrichment — optional, enables watchedPct + more accurate play counts
+    if(cfg.tauUrl && cfg.tauKey){
+      setMsg('Fetching play history from Tautulli...');
+      try{
+        const hr=await fetch(`${cfg.tauUrl}/api/v2?apikey=${cfg.tauKey}&cmd=get_history&length=50000`);
+        const hd=await hr.json();
+        const hist=hd?.response?.data?.data||[];
+        const movieMap={},showMap={};
+        hist.forEach(h=>{
+          const ts=(h.stopped||h.date||0)*1000;
+          if(h.media_type==='episode'||h.grandparent_rating_key){
+            const k=String(h.grandparent_rating_key||h.parent_rating_key||h.rating_key);
+            if(!showMap[k])showMap[k]={plays:0,lastPlayed:0,pctTotal:0};
+            showMap[k].plays++;if(ts>showMap[k].lastPlayed)showMap[k].lastPlayed=ts;showMap[k].pctTotal+=h.percent_complete||0;
+          } else {
+            const k=String(h.rating_key);
+            if(!movieMap[k])movieMap[k]={plays:0,lastPlayed:0,pctTotal:0};
+            movieMap[k].plays++;if(ts>movieMap[k].lastPlayed)movieMap[k].lastPlayed=ts;movieMap[k].pctTotal+=h.percent_complete||0;
+          }
+        });
+        items.forEach(item=>{
+          const h=item.type==='show'?showMap[item.id]:movieMap[item.id];
+          if(h){item.plays=h.plays;item.lastPlayed=h.lastPlayed||item.lastPlayed;item.watchedPct=h.plays>0?Math.round(h.pctTotal/h.plays):null;}
+        });
+        dbg('[Tautulli] Enriched',items.filter(i=>i.watchedPct!==null).length,'items with watchedPct');
+      }catch(ex){
+        dbg('[Tautulli] Error (non-fatal):',ex.message,'— using Plex data only');
+        setMsg('Tautulli unavailable — using Plex data...');
+        await new Promise(r=>setTimeout(r,600));
+      }
+    } else {
+      dbg('[Tautulli] Not configured — Half-watched filter unavailable.');
+    }
+
+    processData(items);
+  }catch(e){
+    showState('error');
+    document.getElementById('error-msg').textContent=e.message||'Unknown error — open browser console (F12) for details.';
+    setStatus('Error','red');
+  }
+}
+</script>
+
+<!-- ══ ERROR TOAST ════════════════════════════════════════ -->
+<div id="err-toast" style="display:none;position:fixed;bottom:2rem;right:2rem;z-index:500;max-width:420px;">
+  <div style="background:var(--bg2);border:1px solid rgba(226,84,84,.4);border-left:3px solid var(--danger);border-radius:var(--radius-lg);padding:1rem 1.25rem;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+    <div style="display:flex;align-items:flex-start;gap:10px;">
+      <svg width="16" height="16" style="flex-shrink:0;margin-top:1px;color:var(--danger)"><use href="#ic-warn"/></svg>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:4px;" id="err-toast-title">Deletion failed</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;word-break:break-word;" id="err-toast-body"></div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.5;" id="err-toast-hint"></div>
+      </div>
+      <button onclick="document.getElementById('err-toast').style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">&#215;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DEBUG PANEL ════════════════════════════════════════════ -->
+<div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;background:#0a0a0c;border-top:2px solid var(--accent);max-height:220px;overflow-y:auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:#0a0a0c;">
+    <span style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;">GUID Debug Log</span>
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="document.getElementById('debug-log').textContent=''" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text3);cursor:pointer;font-size:10px;padding:2px 8px;font-family:inherit;">Clear</button>
+      <button onclick="toggleDebug()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;">&#215;</button>
+    </div>
+  </div>
+  <pre id="debug-log" style="font-size:11px;color:var(--text2);padding:.75rem 1rem;margin:0;white-space:pre-wrap;word-break:break-all;line-height:1.6;"></pre>
+</div>
+</body>
+</html>
